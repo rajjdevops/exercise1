@@ -1,0 +1,71 @@
+pipeline{
+    agent any
+    environment {
+            
+            ACCESS_KEY= credentials('ACCESS_KEY_ID')
+            SECRET_KEY= credentials('SECRET_KEY')
+    }
+
+    stages{
+        stage('setup'){
+            steps {
+                script{
+                    
+                     cleanWs()
+                     git 'https://github.com/rajjdevops/exercise1.git'
+                     sh "sudo yum install wget zip python-pip -y"
+                     sh "curl -o terraform.zip https://releases.hashicorp.com/terraform/0.14.0/terraform_0.14.0_linux_amd64.zip"
+                     sh "unzip terraform.zip"
+                     sh "sudo mv terraform /usr/bin"
+                     sh "rm -rf terraform.zip"
+                }
+                script{
+                    if(action == 'DEPLOY'){
+                        stage('initialize') {
+                                                  echo "[INFO] DEPLOY STAGE HAS BEGUN"
+                           
+                                                   sh """
+                          
+                                                        terraform init -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' 
+                                                       """
+                                        }
+                                       stage('plan') {
+                                                 sh  """
+                     
+                                                 terraform plan -out=tfplan -lock=false -input=false 
+                                                   """
+                                        }
+                                       stage('Apply plan') {
+                                                 sh  """ 
+                       
+                                                  terraform apply -lock=false -input=false tfplan
+                                                   """    
+                                       }
+                    }
+                    if(action == 'DESTROY') {
+                        stage('initialize') {
+                         echo "[INFO] DESTROY STAGE HAS BEGUN"
+                        
+                         sh """
+                            terraform init -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' 
+                            """
+                        }
+                        stage('plan Destroy') {
+                           sh  """
+                           
+                            terraform plan -destroy -out=tfdestroyplan -input=false 
+                            """
+                       }
+                       stage ('Apply Destroy') {
+                        sh  """
+                        
+                        terraform apply -lock=false  -input=false tfdestroyplan
+                        """
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+}
