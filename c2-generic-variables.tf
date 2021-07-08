@@ -16,3 +16,7 @@ variable "business_division" {
   type = string
   default = "IT"
 }
+
+variable "access_key" {}
+
+variable "secret_key" {}
